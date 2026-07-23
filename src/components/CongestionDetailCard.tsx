@@ -69,8 +69,13 @@ export function CongestionDetailCard({
             return (
               <div className="congestion-detail-tile" key={`${record.terminal}-${record.zone}`}>
                 <div className="tile-header">
-                  <span className="tile-terminal">{record.terminal}</span>
-                  <span className="tile-zone">{record.zone}</span>
+                  <span className="tile-header-label">
+                    <span className="tile-terminal">{record.terminal}</span>
+                    <span className="tile-zone">{record.zone}</span>
+                  </span>
+                  <span className="tile-people-count">
+                    약 {estimatePeopleCount(record.congestionLevel).toLocaleString()}명
+                  </span>
                 </div>
                 <div
                   className="tile-level"
@@ -79,9 +84,6 @@ export function CongestionDetailCard({
                   <span className="tile-level-value">{record.congestionLevel}%</span>
                   <span className="tile-label">{record.congestionLabel}</span>
                 </div>
-                <span className="tile-people-count">
-                  약 {estimatePeopleCount(record.congestionLevel).toLocaleString()}명
-                </span>
                 {isLoggedIn && (
                   <button type="button" className="btn-primary" onClick={() => onAddFavorite(record)}>
                     즐겨찾기 추가

@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { getCongestionAt } from '../services/congestionService'
-import type { FavoriteItem } from '../types/congestion'
+import type { FavoriteItem, Terminal } from '../types/congestion'
 
 interface FavoritesListProps {
   isLoggedIn: boolean
@@ -9,6 +10,8 @@ interface FavoritesListProps {
   onRemoveFavorite: (id: string) => void
 }
 
+const TERMINALS: Terminal[] = ['T1', 'T2']
+
 export function FavoritesList({
   isLoggedIn,
   favorites,
@@ -16,6 +19,12 @@ export function FavoritesList({
   onSelectFavorite,
   onRemoveFavorite,
 }: FavoritesListProps) {
+  const [expanded, setExpanded] = useState<Record<Terminal, boolean>>({ T1: true, T2: true })
+
+  function toggleGroup(terminal: Terminal) {
+    setExpanded((prev) => ({ ...prev, [terminal]: !prev[terminal] }))
+  }
+
   return (
     <section className="favorites-list">
       <h2>즐겨찾기</h2>
@@ -27,40 +36,74 @@ export function FavoritesList({
       ) : favorites.length === 0 ? (
         <p>저장된 즐겨찾기가 없습니다.</p>
       ) : (
-        <ul>
-          {favorites.map((favorite) => {
-            const isCongested = getCongestionAt(favorite.targetDate, favorite.targetTime).some(
-              (record) =>
-                record.terminal === favorite.terminal &&
-                record.zone === favorite.zone &&
-                record.congestionLabel === '혼잡',
-            )
+        <div className="favorite-groups">
+          {TERMINALS.map((terminal) => {
+            const groupItems = favorites.filter((favorite) => favorite.terminal === terminal)
+            if (groupItems.length === 0) return null
+            const isOpen = expanded[terminal]
+
             return (
-              <li key={favorite.id}>
+              <div className="favorite-group" key={terminal}>
                 <button
                   type="button"
-                  className="favorite-item"
-                  onClick={() => onSelectFavorite(favorite)}
+                  className="favorite-group-header"
+                  onClick={() => toggleGroup(terminal)}
+                  aria-expanded={isOpen}
                 >
-                  {isCongested && (
-                    <span className="favorite-alert" title="혼잡 기준치 초과">
-                      🔥
-                    </span>
-                  )}
-                  {favorite.terminal} · {favorite.zone} · {favorite.targetDate}{' '}
-                  {favorite.targetTime}
+                  <span>
+                    {terminal} <span className="favorite-group-count">{groupItems.length}</span>
+                  </span>
+                  <span className={`favorite-group-chevron ${isOpen ? 'open' : ''}`}>▾</span>
                 </button>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => onRemoveFavorite(favorite.id)}
-                >
-                  삭제
-                </button>
-              </li>
+
+                {isOpen && (
+                  <ul>
+                    {groupItems.map((favorite) => {
+                      const isCongested = getCongestionAt(
+                        favorite.targetDate,
+                        favorite.targetTime,
+                      ).some(
+                        (record) =>
+                          record.terminal === favorite.terminal &&
+                          record.zone === favorite.zone &&
+                          record.congestionLabel === '혼잡',
+                      )
+                      return (
+                        <li key={favorite.id} className="favorite-row">
+                          <button
+                            type="button"
+                            className="favorite-item"
+                            onClick={() => onSelectFavorite(favorite)}
+                          >
+                            <span className="favorite-title">
+                              <span
+                                className="favorite-alert"
+                                title={isCongested ? '혼잡 기준치 초과' : undefined}
+                              >
+                                {isCongested ? '🔥' : ''}
+                              </span>
+                              {favorite.terminal} · {favorite.zone}
+                              <span className="favorite-time">
+                                {favorite.targetDate} {favorite.targetTime}
+                              </span>
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-delete"
+                            onClick={() => onRemoveFavorite(favorite.id)}
+                          >
+                            삭제
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
             )
           })}
-        </ul>
+        </div>
       )}
     </section>
   )

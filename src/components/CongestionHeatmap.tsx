@@ -19,6 +19,11 @@ const TIMES = Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2
 
 const FIRE_THRESHOLD = 90
 
+function isHourBlockEnd(time: string): boolean {
+  const hour = Number(time.slice(0, 2))
+  return hour % 6 === 5
+}
+
 export function CongestionHeatmap({ dayRecords, selectedTime, onSelectTime }: CongestionHeatmapProps) {
   function findRecord(terminal: Terminal, zone: Zone, time: string) {
     return dayRecords.find(
@@ -43,7 +48,7 @@ export function CongestionHeatmap({ dayRecords, selectedTime, onSelectTime }: Co
             <button
               key={time}
               type="button"
-              className={`heatmap-cell heatmap-time-label ${time === selectedTime ? 'selected' : ''}`}
+              className={`heatmap-cell heatmap-time-label ${time === selectedTime ? 'selected' : ''} ${isHourBlockEnd(time) ? 'hour-block-end' : ''}`}
               onClick={() => onSelectTime(time)}
               title={time}
             >
@@ -63,7 +68,7 @@ export function CongestionHeatmap({ dayRecords, selectedTime, onSelectTime }: Co
                   <button
                     key={`${terminal}-${zone}-${time}`}
                     type="button"
-                    className={`heatmap-cell heatmap-value-cell ${time === selectedTime ? 'selected' : ''}`}
+                    className={`heatmap-cell heatmap-value-cell ${time === selectedTime ? 'selected' : ''} ${isHourBlockEnd(time) ? 'hour-block-end' : ''}`}
                     style={style ? { background: style.background, color: style.color } : undefined}
                     onClick={() => onSelectTime(time)}
                     title={

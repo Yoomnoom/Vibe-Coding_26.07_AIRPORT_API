@@ -28,6 +28,10 @@
   margin-left: auto;
 }
 
+.header-controls > button {
+  font-size: 14px;
+}
+
 .day-toggle,
 .zone-toggle,
 .auth-mode-toggle {
@@ -63,6 +67,18 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+.top-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.top-row > section {
+  flex: 1;
+  min-width: 260px;
 }
 
 section {
@@ -168,18 +184,20 @@ button {
   gap: 8px;
 }
 
-.congestion-detail-tile .tile-level,
-.congestion-detail-tile .btn-primary {
-  justify-content: flex-start;
-  text-align: left;
-}
-
 .tile-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  width: 100%;
   gap: 6px;
   font-size: 13px;
   color: var(--text-muted);
+}
+
+.tile-header-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .tile-terminal {
@@ -188,9 +206,10 @@ button {
 }
 
 .tile-level {
+  position: relative;
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  justify-content: center;
   border-radius: 8px;
   padding: 4px 10px;
 }
@@ -201,6 +220,10 @@ button {
 }
 
 .tile-label {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
   font-size: 13px;
   opacity: 0.85;
 }
@@ -223,31 +246,99 @@ button {
   color: var(--text-muted);
 }
 
+.favorite-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.favorite-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: transparent;
+  color: var(--ink);
+  font-weight: 600;
+  padding: 4px 4px;
+}
+
+.favorite-group-count {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.favorite-group-chevron {
+  display: inline-block;
+  color: var(--text-muted);
+  transition: transform 120ms;
+}
+
+.favorite-group-chevron.open {
+  transform: rotate(180deg);
+}
+
 .favorites-list ul {
   list-style: none;
-  margin: 0;
+  margin: 8px 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.favorites-list li {
+.favorite-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  background: rgba(115, 83, 234, 0.06);
+  border-radius: 16px;
+  padding: 8px 8px 8px 16px;
 }
 
 .favorite-item {
   flex: 1;
+  display: flex;
+  align-items: center;
   text-align: left;
   background: transparent;
-  padding: 6px 0;
+  padding: 8px 0;
+}
+
+.favorite-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.favorite-time {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-muted);
 }
 
 .favorite-alert {
-  margin-right: 4px;
+  display: inline-block;
+  width: 1.2em;
+  text-align: center;
+}
+
+.btn-delete {
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 400;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+.btn-delete:hover {
+  background: rgba(250, 70, 106, 0.1);
+  color: var(--danger);
 }
 
 .heatmap-scroll {
@@ -259,6 +350,10 @@ button {
   display: grid;
   gap: 4px;
   min-width: 360px;
+}
+
+.hour-block-end {
+  margin-right: 6px;
 }
 
 .heatmap-cell {

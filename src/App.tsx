@@ -169,13 +169,21 @@ function App() {
 
       <div className="app-body">
         <main className="app-main">
-          <FavoritesList
-            isLoggedIn={isLoggedIn}
-            favorites={favorites}
-            error={favoritesError}
-            onSelectFavorite={handleSelectFavorite}
-            onRemoveFavorite={handleRemoveFavorite}
-          />
+          <div className="top-row">
+            <FavoritesList
+              isLoggedIn={isLoggedIn}
+              favorites={favorites}
+              error={favoritesError}
+              onSelectFavorite={handleSelectFavorite}
+              onRemoveFavorite={handleRemoveFavorite}
+            />
+
+            <RecommendationBanner
+              dayRecords={dayRecords}
+              zone={selectedZone}
+              onSelectTime={handleChangeTime}
+            />
+          </div>
 
           <CongestionDetailCard
             selectedDate={selectedDate}
@@ -189,12 +197,6 @@ function App() {
             isLiveMode={isLiveMode}
             onGoLive={handleGoLive}
             lastRefreshedAt={lastRefreshedAt}
-          />
-
-          <RecommendationBanner
-            dayRecords={dayRecords}
-            zone={selectedZone}
-            onSelectTime={handleChangeTime}
           />
 
           <CongestionHeatmap
