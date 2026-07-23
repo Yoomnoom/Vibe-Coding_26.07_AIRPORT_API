@@ -1,0 +1,111 @@
+:root {
+  --primary: #7353ea;
+  --primary-deep: #524fa1;
+  --primary-light: #7875c8;
+  --ink: #191f28;
+  --body-ink: #222222;
+  --slate: #343e4b;
+  --muted: #66717e;
+  --accent-blue: #2f5efb;
+  --accent-sky: #00a6ff;
+  --accent-magenta: #b853ea;
+  --success: #00ab53;
+  --success-deep: #1b5e20;
+  --success-tint: #dfebe0;
+  --danger: #fa466a;
+  --canvas: #ffffff;
+  --surface: #f0f1f3;
+  --hairline: #e9ebf0;
+
+  --text: var(--body-ink);
+  --text-muted: var(--muted);
+  --bg: var(--surface);
+  --bg-elevated: var(--canvas);
+  --border: var(--hairline);
+  --accent: var(--primary);
+  --accent-contrast: #ffffff;
+
+  font: 16px/150% 'Pretendard Variable', Pretendard, system-ui, 'Segoe UI', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #1c1e22;
+    --surface: #121316;
+    --hairline: #2c2f35;
+    --muted: #8b95a1;
+    --slate: #c3cad3;
+    --body-ink: #eef0f2;
+
+    --text: var(--body-ink);
+    --text-muted: var(--muted);
+    --bg: var(--surface);
+    --bg-elevated: var(--canvas);
+    --border: var(--hairline);
+    --accent-contrast: #ffffff;
+  }
+}
+
+:root[data-theme='dark'] {
+  --canvas: #1c1e22;
+  --surface: #121316;
+  --hairline: #2c2f35;
+  --muted: #8b95a1;
+  --slate: #c3cad3;
+  --body-ink: #eef0f2;
+
+  --text: var(--body-ink);
+  --text-muted: var(--muted);
+  --bg: var(--surface);
+  --bg-elevated: var(--canvas);
+  --border: var(--hairline);
+  --accent-contrast: #ffffff;
+}
+
+:root[data-theme='light'] {
+  --canvas: #ffffff;
+  --surface: #f0f1f3;
+  --hairline: #e9ebf0;
+  --muted: #66717e;
+  --slate: #343e4b;
+  --body-ink: #222222;
+
+  --text: var(--body-ink);
+  --text-muted: var(--muted);
+  --bg: var(--surface);
+  --bg-elevated: var(--canvas);
+  --border: var(--hairline);
+  --accent-contrast: #ffffff;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  background: var(--bg);
+}
+
+h1,
+h2 {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: 22px;
+}
+
+h2 {
+  font-size: 16px;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
