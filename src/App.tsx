@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { CongestionDetailCard } from './components/CongestionDetailCard'
 import { CongestionHeatmap } from './components/CongestionHeatmap'
@@ -11,7 +11,11 @@ import { useAuth } from './hooks/useAuth'
 import { useDarkMode } from './hooks/useDarkMode'
 import { usePassgrAnncmt } from './hooks/usePassgrAnncmt'
 import { PassgrAnncmtViewer } from './components/PassgrAnncmtViewer'
-import { addFavorite, getFavorites, removeFavorite } from './services/favoritesService'
+import {
+  addInterestPlace,
+  getInterestPlaces,
+  removeInterestPlace,
+} from './services/favoritesService'
 import {
   TODAY_DATE,
   TOMORROW_DATE,
@@ -21,7 +25,7 @@ import {
   getTodayCongestion,
   getTomorrowCongestion,
 } from './services/congestionService'
-import type { CongestionRecord, DayKind, FavoriteItem, Zone } from './types/congestion'
+import type { DayKind, InterestPlace, NewInterestPlaceInput, Zone } from './types/congestion'
 
 function App() {
   const { isDarkMode, toggleDarkMode } = useDarkMode()
@@ -34,16 +38,15 @@ function App() {
   const [isLiveMode, setIsLiveMode] = useState(true)
   const [lastRefreshedAt, setLastRefreshedAt] = useState(() => new Date())
 
-  const [favorites, setFavorites] = useState<FavoriteItem[]>([])
-  const [scheduleFeedback, setScheduleFeedback] = useState<string | null>(null)
+  const [places, setPlaces] = useState<InterestPlace[]>([])
+  const [placeFeedback, setPlaceFeedback] = useState<string | null>(null)
   const [loginPromptSignal, setLoginPromptSignal] = useState(0)
-  const detailCardRef = useRef<HTMLDivElement>(null)
 
   const [showPassgrAnncmtTest, setShowPassgrAnncmtTest] = useState(false)
 
-  function showScheduleFeedback(message: string) {
-    setScheduleFeedback(message)
-    setTimeout(() => setScheduleFeedback((current) => (current === message ? null : current)), 3000)
+  function showPlaceFeedback(message: string) {
+    setPlaceFeedback(message)
+    setTimeout(() => setPlaceFeedback((current) => (current === message ? null : current)), 3000)
   }
 
   const dayRecords = useMemo(
@@ -110,71 +113,52 @@ function App() {
     return () => clearInterval(interval)
   }, [isLiveMode, selectedDay])
 
-  const [favoritesError, setFavoritesError] = useState<string | null>(null)
+  const [placesError, setPlacesError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) {
-      setFavorites([])
+      setPlaces([])
       return
     }
-    getFavorites(user.id)
-      .then(setFavorites)
-      .catch((err: Error) => setFavoritesError(err.message))
+    getInterestPlaces(user.id)
+      .then(setPlaces)
+      .catch((err: Error) => setPlacesError(err.message))
   }, [user])
 
-  function isDuplicateSchedule(record: CongestionRecord) {
-    return favorites.some(
-      (favorite) =>
-        favorite.terminal === record.terminal &&
-        favorite.zone === record.zone &&
-        favorite.targetDate === record.date &&
-        favorite.targetTime === record.time,
-    )
+  function isDuplicatePlace(placeKey: string) {
+    return places.some((place) => place.placeKey === placeKey)
   }
 
-  async function handleAddFavorite(record: CongestionRecord) {
+  async function handleAddPlace(input: NewInterestPlaceInput) {
     if (!user) {
-      showScheduleFeedback('공항 일정을 저장하려면 로그인이 필요합니다.')
+      showPlaceFeedback('관심 출입국장을 저장하려면 로그인이 필요합니다.')
       setLoginPromptSignal((prev) => prev + 1)
       return
     }
-    if (isDuplicateSchedule(record)) {
-      showScheduleFeedback('이미 저장된 공항 일정입니다.')
+    if (isDuplicatePlace(input.placeKey)) {
+      showPlaceFeedback('이미 저장된 관심 출입국장입니다.')
       return
     }
-    setFavoritesError(null)
+    setPlacesError(null)
     try {
-      await addFavorite(user.id, {
-        terminal: record.terminal,
-        zone: record.zone,
-        targetDate: record.date,
-        targetTime: record.time,
-      })
-      setFavorites(await getFavorites(user.id))
-      showScheduleFeedback('내 공항 일정에 저장했습니다.')
+      await addInterestPlace(user.id, input)
+      setPlaces(await getInterestPlaces(user.id))
+      showPlaceFeedback('관심 출입국장을 저장했습니다.')
     } catch (err) {
-      setFavoritesError((err as Error).message)
+      setPlacesError((err as Error).message)
     }
   }
 
-  async function handleRemoveFavorite(id: string) {
+  async function handleRemovePlace(id: string) {
     if (!user) return
-    setFavoritesError(null)
+    setPlacesError(null)
     try {
-      await removeFavorite(id)
-      setFavorites(await getFavorites(user.id))
-      showScheduleFeedback('공항 일정을 삭제했습니다.')
+      await removeInterestPlace(id)
+      setPlaces(await getInterestPlaces(user.id))
+      showPlaceFeedback('관심 출입국장을 삭제했습니다.')
     } catch (err) {
-      setFavoritesError((err as Error).message)
+      setPlacesError((err as Error).message)
     }
-  }
-
-  function handleSelectFavorite(favorite: FavoriteItem) {
-    setSelectedDay(favorite.targetDate === TOMORROW_DATE ? 'tomorrow' : 'today')
-    setSelectedDate(favorite.targetDate)
-    setIsLiveMode(false)
-    setSelectedTime(favorite.targetTime)
-    detailCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   return (
@@ -199,15 +183,17 @@ function App() {
 
       <div className="app-body">
         <main className="app-main">
-          {scheduleFeedback && <div className="schedule-toast">{scheduleFeedback}</div>}
+          {placeFeedback && <div className="schedule-toast">{placeFeedback}</div>}
 
           <div className="top-row">
             <FavoritesList
               isLoggedIn={isLoggedIn}
-              favorites={favorites}
-              error={favoritesError}
-              onSelectFavorite={handleSelectFavorite}
-              onRemoveFavorite={handleRemoveFavorite}
+              places={places}
+              error={placesError}
+              selectedDay={selectedDay}
+              selectedTime={selectedTime}
+              onAddPlace={handleAddPlace}
+              onRemovePlace={handleRemovePlace}
             />
 
             <RecommendationBanner
@@ -217,20 +203,17 @@ function App() {
             />
           </div>
 
-          <div ref={detailCardRef}>
-            <CongestionDetailCard
-              selectedDate={selectedDate}
-              selectedTime={selectedTime}
-              availableTimes={getAvailableTimes()}
-              onChangeDate={handleChangeDate}
-              onChangeTime={handleChangeTime}
-              records={detailRecords}
-              onAddFavorite={handleAddFavorite}
-              isLiveMode={isLiveMode}
-              onGoLive={handleGoLive}
-              lastRefreshedAt={lastRefreshedAt}
-            />
-          </div>
+          <CongestionDetailCard
+            selectedDate={selectedDate}
+            selectedTime={selectedTime}
+            availableTimes={getAvailableTimes()}
+            onChangeDate={handleChangeDate}
+            onChangeTime={handleChangeTime}
+            records={detailRecords}
+            isLiveMode={isLiveMode}
+            onGoLive={handleGoLive}
+            lastRefreshedAt={lastRefreshedAt}
+          />
 
           <CongestionHeatmap
             dayRecords={dayRecords}

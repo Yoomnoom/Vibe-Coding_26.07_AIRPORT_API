@@ -1,193 +1,236 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
-  estimatePeopleCount,
-  getCongestionAt,
-  getScheduleStatus,
-} from '../services/congestionService'
-import { CONGESTION_LEVEL_STYLE } from '../utils/congestionColors'
-import type { FavoriteItem } from '../types/congestion'
+  DETAIL_PLACES,
+  findRecordByTime,
+  getDetailPlaceDay,
+  getPlaceValue,
+} from '../services/detailPlaces'
+import type { PassgrAnncmtItem } from '../types/airportApi'
+import type { DayKind, InterestPlace, NewInterestPlaceInput } from '../types/congestion'
 
 interface FavoritesListProps {
   isLoggedIn: boolean
-  favorites: FavoriteItem[]
+  places: InterestPlace[]
   error: string | null
-  onSelectFavorite: (favorite: FavoriteItem) => void
-  onRemoveFavorite: (id: string) => void
+  selectedDay: DayKind
+  selectedTime: string
+  onAddPlace: (input: NewInterestPlaceInput) => void
+  onRemovePlace: (id: string) => void
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  today: '오늘',
-  tomorrow: '내일',
-  past: '지난 일정',
+interface RankedPlace {
+  place: InterestPlace
+  value: number | null
 }
 
-function ScheduleCard({
-  favorite,
-  onSelectFavorite,
-  onRemoveFavorite,
-}: {
-  favorite: FavoriteItem
-  onSelectFavorite: (favorite: FavoriteItem) => void
-  onRemoveFavorite: (id: string) => void
-}) {
-  const status = getScheduleStatus(favorite.targetDate, favorite.targetTime)
-  const record =
-    status === 'past'
-      ? undefined
-      : getCongestionAt(favorite.targetDate, favorite.targetTime).find(
-          (item) => item.terminal === favorite.terminal && item.zone === favorite.zone,
-        )
-  const style = record ? CONGESTION_LEVEL_STYLE[record.congestionLabel] : undefined
-  const isCongested = record?.congestionLabel === '혼잡'
-
-  function handleDelete() {
-    if (window.confirm('이 공항 일정을 삭제하시겠습니까?')) {
-      onRemoveFavorite(favorite.id)
-    }
-  }
-
-  return (
-    <li className={`schedule-card ${status === 'past' ? 'schedule-card-past' : ''}`}>
-      <button
-        type="button"
-        className="schedule-card-main"
-        onClick={() => onSelectFavorite(favorite)}
-      >
-        <div className="schedule-card-top">
-          <span className="favorite-alert" title={isCongested ? '혼잡 기준치 초과' : undefined}>
-            {isCongested ? '🔥' : ''}
-          </span>
-          <span className="schedule-title">
-            {favorite.terminal} · {favorite.zone}
-          </span>
-          <span className={`schedule-status-badge schedule-status-${status}`}>
-            {STATUS_LABEL[status]}
-          </span>
-        </div>
-
-        <div className="schedule-card-time">
-          {favorite.targetDate} {favorite.targetTime}
-        </div>
-
-        {record ? (
-          <div className="schedule-card-metrics">
-            <span
-              className="schedule-pill"
-              style={style ? { background: style.background, color: style.color } : undefined}
-            >
-              {record.congestionLevel}% · {record.congestionLabel}
-            </span>
-            <span className="schedule-people">
-              약 {estimatePeopleCount(record.congestionLevel).toLocaleString()}명
-            </span>
-          </div>
-        ) : (
-          <p className="schedule-expired-note">조회 가능 기간이 지난 일정입니다.</p>
-        )}
-
-        <span className="schedule-detail-link">상세 보기 →</span>
-      </button>
-
-      <button type="button" className="btn-delete schedule-delete-btn" onClick={handleDelete}>
-        일정 삭제
-      </button>
-    </li>
-  )
+function formatNumber(value: number): string {
+  return Math.round(value).toLocaleString()
 }
 
 export function FavoritesList({
   isLoggedIn,
-  favorites,
+  places,
   error,
-  onSelectFavorite,
-  onRemoveFavorite,
+  selectedDay,
+  selectedTime,
+  onAddPlace,
+  onRemovePlace,
 }: FavoritesListProps) {
-  const [isPastOpen, setIsPastOpen] = useState(false)
+  const [dayItems, setDayItems] = useState<PassgrAnncmtItem[]>([])
+  const [isLoadingDay, setIsLoadingDay] = useState(false)
+  const [dayError, setDayError] = useState<string | null>(null)
+  const [pickedKey, setPickedKey] = useState(DETAIL_PLACES[0].key)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const upcoming: FavoriteItem[] = []
-  const past: FavoriteItem[] = []
+  useEffect(() => {
+    let cancelled = false
+    setIsLoadingDay(true)
+    setDayError(null)
+    getDetailPlaceDay(selectedDay)
+      .then((items) => {
+        if (!cancelled) setDayItems(items)
+      })
+      .catch((err: Error) => {
+        if (!cancelled) setDayError(err.message)
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingDay(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [selectedDay])
 
-  favorites.forEach((favorite) => {
-    const status = getScheduleStatus(favorite.targetDate, favorite.targetTime)
-    ;(status === 'past' ? past : upcoming).push(favorite)
-  })
+  const currentRecord = findRecordByTime(dayItems, selectedTime)
 
-  function scheduleRank(favorite: FavoriteItem): number {
-    const status = getScheduleStatus(favorite.targetDate, favorite.targetTime)
-    return status === 'today' ? 0 : status === 'tomorrow' ? 1 : 2
-  }
+  const ranked: RankedPlace[] = places
+    .map((place) => ({ place, value: getPlaceValue(currentRecord, place.placeKey) }))
+    .sort((a, b) => {
+      if (a.value === null && b.value === null) return 0
+      if (a.value === null) return 1
+      if (b.value === null) return -1
+      return a.value - b.value
+    })
 
-  function sortSchedules(items: FavoriteItem[]): FavoriteItem[] {
-    return [...items].sort((a, b) => {
-      const rankDiff = scheduleRank(a) - scheduleRank(b)
-      if (rankDiff !== 0) return rankDiff
-      if (a.targetDate !== b.targetDate) return a.targetDate.localeCompare(b.targetDate)
-      return a.targetTime.localeCompare(b.targetTime)
+  const validValues = ranked.filter((r) => r.value !== null)
+  const bestValue = validValues[0]?.value ?? null
+
+  const pickedPlace = DETAIL_PLACES.find((place) => place.key === pickedKey) ?? DETAIL_PLACES[0]
+  const isPickedSaved = places.some((place) => place.placeKey === pickedKey)
+
+  function handleSave() {
+    onAddPlace({
+      terminal: pickedPlace.terminal,
+      placeType: pickedPlace.placeType,
+      placeKey: pickedPlace.key,
+      placeLabel: pickedPlace.label,
     })
   }
 
-  const sortedUpcoming = sortSchedules(upcoming)
-  const sortedPast = sortSchedules(past)
-
   return (
     <section className="favorites-list">
-      <h2>내 공항 일정</h2>
+      <h2>내 관심 출입국장</h2>
+      <p className="favorites-empty-hint">자주 확인하거나 비교할 출입국장을 저장해보세요.</p>
 
       {error && <p className="auth-error">{error}</p>}
+      {dayError && <p className="auth-error">{dayError}</p>}
+
+      <div className="place-picker">
+        <select
+          value={pickedKey}
+          onChange={(event) => setPickedKey(event.target.value)}
+          aria-label="세부 출입국장 선택"
+        >
+          <optgroup label="T1">
+            {DETAIL_PLACES.filter((place) => place.terminal === 'T1').map((place) => (
+              <option key={place.key} value={place.key}>
+                {place.label}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="T2">
+            {DETAIL_PLACES.filter((place) => place.terminal === 'T2').map((place) => (
+              <option key={place.key} value={place.key}>
+                {place.label}
+              </option>
+            ))}
+          </optgroup>
+        </select>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={handleSave}
+          disabled={isLoggedIn && isPickedSaved}
+        >
+          {isLoggedIn && isPickedSaved ? '저장됨' : '관심 장소 저장'}
+        </button>
+      </div>
 
       {!isLoggedIn ? (
-        <p>로그인 후 저장된 공항 일정을 확인할 수 있습니다.</p>
-      ) : favorites.length === 0 ? (
-        <>
-          <p>저장된 공항 일정이 없습니다.</p>
-          <p className="favorites-empty-hint">
-            오늘 또는 내일 방문할 터미널과 시간을 저장하면 혼잡도를 빠르게 다시 확인할 수 있습니다.
-          </p>
-        </>
+        <p>로그인 후 저장된 관심 출입국장을 확인할 수 있습니다.</p>
+      ) : places.length === 0 ? (
+        <p>저장된 관심 출입국장이 없습니다.</p>
       ) : (
-        <div className="favorite-groups">
-          {sortedUpcoming.length > 0 && (
-            <ul>
-              {sortedUpcoming.map((favorite) => (
-                <ScheduleCard
-                  key={favorite.id}
-                  favorite={favorite}
-                  onSelectFavorite={onSelectFavorite}
-                  onRemoveFavorite={onRemoveFavorite}
-                />
-              ))}
-            </ul>
-          )}
+        <ul>
+          {ranked.map(({ place, value }, index) => {
+            const isBest = value !== null && value === bestValue
+            const diff = value !== null && bestValue !== null ? value - bestValue : null
+            const isExpanded = expandedId === place.id
 
-          {sortedPast.length > 0 && (
-            <div className="favorite-group">
-              <button
-                type="button"
-                className="favorite-group-header"
-                onClick={() => setIsPastOpen((prev) => !prev)}
-                aria-expanded={isPastOpen}
-              >
-                <span>
-                  지난 일정 <span className="favorite-group-count">{sortedPast.length}</span>
-                </span>
-                <span className={`favorite-group-chevron ${isPastOpen ? 'open' : ''}`}>▾</span>
-              </button>
+            function handleDelete() {
+              if (window.confirm('이 관심 장소를 삭제하시겠습니까?')) {
+                onRemovePlace(place.id)
+              }
+            }
 
-              {isPastOpen && (
-                <ul>
-                  {sortedPast.map((favorite) => (
-                    <ScheduleCard
-                      key={favorite.id}
-                      favorite={favorite}
-                      onSelectFavorite={onSelectFavorite}
-                      onRemoveFavorite={onRemoveFavorite}
-                    />
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-        </div>
+            const sameTerminalToday = DETAIL_PLACES.filter((p) => p.terminal === place.terminal)
+              .map((p) => ({ place: p, value: getPlaceValue(currentRecord, p.key) }))
+              .filter((p): p is { place: (typeof DETAIL_PLACES)[number]; value: number } => p.value !== null)
+              .sort((a, b) => a.value - b.value)
+
+            const hourlyValues = dayItems
+              .filter((item) => item.atime !== '합계')
+              .map((item) => ({
+                time: String(item.atime),
+                value: getPlaceValue(item, place.placeKey),
+              }))
+              .filter((entry): entry is { time: string; value: number } => entry.value !== null)
+
+            const bestHour = hourlyValues.reduce<{ time: string; value: number } | null>(
+              (best, entry) => (best === null || entry.value < best.value ? entry : best),
+              null,
+            )
+
+            return (
+              <li key={place.id} className="schedule-card">
+                <div className="schedule-card-main">
+                  <div className="schedule-card-top">
+                    {isBest && <span className="schedule-status-badge schedule-status-today">가장 여유로움</span>}
+                    <span className="schedule-title">
+                      {place.terminal} {place.placeLabel.replace(`${place.terminal} `, '')}
+                    </span>
+                  </div>
+
+                  <div className="schedule-card-time">
+                    {selectedTime} 예상 승객
+                    {isLoadingDay ? (
+                      <p className="schedule-expired-note">불러오는 중...</p>
+                    ) : value === null ? (
+                      <p className="schedule-expired-note">해당 시간의 예상 승객 정보가 없습니다.</p>
+                    ) : (
+                      <div className="schedule-card-metrics">
+                        <span className="schedule-pill">{formatNumber(value)}명</span>
+                        {!isBest && diff !== null && (
+                          <span className="schedule-people">가장 여유로운 장소보다 {formatNumber(diff)}명 많음</span>
+                        )}
+                      </div>
+                    )}
+                    {validValues.length > 1 && value !== null && (
+                      <p className="favorites-empty-hint">
+                        관심 장소 {validValues.length}곳 중 {index + 1}번째로 여유로움
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="schedule-detail-link"
+                    onClick={() => setExpandedId(isExpanded ? null : place.id)}
+                  >
+                    상세 보기 {isExpanded ? '▴' : '▾'}
+                  </button>
+
+                  {isExpanded && (
+                    <div className="place-detail-panel">
+                      <p className="favorites-empty-hint">
+                        같은 터미널 다른 출입국장과 비교 ({selectedTime} 기준)
+                      </p>
+                      <ul className="place-compare-list">
+                        {sameTerminalToday.map((entry) => (
+                          <li
+                            key={entry.place.key}
+                            className={entry.place.key === place.placeKey ? 'place-compare-self' : ''}
+                          >
+                            {entry.place.label}: {formatNumber(entry.value)}명
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="favorites-empty-hint">
+                        {bestHour
+                          ? `오늘 중 가장 여유로운 시간: ${bestHour.time.replace('_', '~')} (${formatNumber(bestHour.value)}명)`
+                          : '하루 시간대별 데이터를 확인할 수 없습니다.'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <button type="button" className="btn-delete schedule-delete-btn" onClick={handleDelete}>
+                  관심 장소 삭제
+                </button>
+              </li>
+            )
+          })}
+        </ul>
       )}
     </section>
   )
