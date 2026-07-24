@@ -1,6 +1,6 @@
 import type { CongestionRecord, Terminal, Zone } from '../types/congestion'
 
-// TODO: 실제 연동 시 공공데이터포털 API(VITE_AIRPORT_API_KEY) 호출로 교체.
+// TODO: 실제 연동 시 airportApi.ts(airport-proxy Edge Function 경유)의 getPassgrAnncmt 결과로 교체.
 // 지금은 화면 뼈대 확인용 하드코딩 데이터를 반환한다.
 
 const TERMINALS: Terminal[] = ['T1', 'T2']
@@ -60,6 +60,19 @@ export function getAvailableTimes(): string[] {
 
 export function getCurrentTimeSlot(): string {
   return `${String(new Date().getHours()).padStart(2, '0')}:00`
+}
+
+export type ScheduleStatus = 'today' | 'tomorrow' | 'past'
+
+// 저장된 일정(targetDate/targetTime)이 오늘/내일/지난 일정 중 어디에 해당하는지 판정한다.
+// 이 앱의 "오늘"은 실제 기기 날짜가 아니라 TODAY_DATE(목업 기준일)로 고정되어 있으므로,
+// 그 기준으로만 판단한다 (실시간 모드가 getCurrentTimeSlot()을 쓰는 것과 동일한 규칙).
+export function getScheduleStatus(targetDate: string, targetTime: string): ScheduleStatus {
+  if (targetDate === TOMORROW_DATE) return 'tomorrow'
+  if (targetDate === TODAY_DATE) {
+    return targetTime < getCurrentTimeSlot() ? 'past' : 'today'
+  }
+  return 'past'
 }
 
 // 혼잡도 100% 기준 가정 인원. 실제 공공데이터 API에 인원수 필드가 있는지 확인되면 교체한다.

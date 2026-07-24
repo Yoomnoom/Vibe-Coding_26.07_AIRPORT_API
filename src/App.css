@@ -288,37 +288,41 @@ button {
   gap: 8px;
 }
 
-.favorite-row {
+.favorites-empty-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.schedule-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: stretch;
   gap: 8px;
   background: rgba(115, 83, 234, 0.06);
   border-radius: 16px;
   padding: 8px 8px 8px 16px;
 }
 
-.favorite-item {
+.schedule-card-past {
+  background: var(--surface);
+  opacity: 0.75;
+}
+
+.schedule-card-main {
   flex: 1;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   text-align: left;
   background: transparent;
   padding: 8px 0;
 }
 
-.favorite-title {
+.schedule-card-top {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.favorite-time {
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--text-muted);
+  align-items: center;
+  gap: 6px;
+  width: 100%;
 }
 
 .favorite-alert {
@@ -327,18 +331,96 @@ button {
   text-align: center;
 }
 
+.schedule-title {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.schedule-status-badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--text-muted);
+  background: var(--surface);
+}
+
+.schedule-status-today {
+  background: rgba(115, 83, 234, 0.12);
+  color: var(--primary-deep);
+}
+
+.schedule-status-tomorrow {
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.schedule-status-past {
+  background: transparent;
+  color: var(--muted);
+}
+
+.schedule-card-time {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.schedule-card-metrics {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.schedule-pill {
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 2px 8px;
+}
+
+.schedule-people {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.schedule-expired-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.schedule-detail-link {
+  font-size: 12px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
 .btn-delete {
   background: transparent;
   color: var(--text-muted);
   font-size: 13px;
   font-weight: 400;
-  padding: 6px 10px;
+  padding: 8px 14px;
   border-radius: 8px;
 }
 
 .btn-delete:hover {
   background: rgba(250, 70, 106, 0.1);
   color: var(--danger);
+}
+
+.schedule-delete-btn {
+  align-self: center;
+}
+
+.schedule-toast {
+  background: rgba(115, 83, 234, 0.08);
+  color: var(--primary-deep);
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .heatmap-scroll {
@@ -578,6 +660,11 @@ button {
   border-radius: 8px;
   padding: 4px 10px;
   background: var(--surface);
+  color: var(--text-muted);
+}
+
+.recommendation-people {
+  font-size: 13px;
   color: var(--text-muted);
 }
 

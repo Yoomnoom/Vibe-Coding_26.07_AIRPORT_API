@@ -56,17 +56,19 @@
 ## 4. 아키텍처
 
 ```
-React(Vite) SPA ──fetch──> 공공데이터포털 API (프론트 직접 호출)
+React(Vite) SPA ──fetch──> Supabase Edge Function (프록시) ──fetch──> 공공데이터포털 API
        │
        └─ Supabase JS Client ─ Auth / Database(RLS)
 Vercel 배포, 환경변수: .env(로컬) / Vercel Env(운영)
-  - VITE_AIRPORT_API_KEY
   - VITE_SUPABASE_URL
   - VITE_SUPABASE_ANON_KEY
+
+Supabase Edge Function Secret (프론트엔드에 노출되지 않음):
+  - AIRPORT_API_KEY
 ```
 
-- 프론트엔드: React 19 + TypeScript + Vite (백엔드 서버 없음)
-- 인증/DB: Supabase (Auth + Postgres + RLS), 프로젝트: "Yoomnoom's Project" (`pkucszwwnwpzvzqczmhh`)
+- 프론트엔드: React 19 + TypeScript + Vite (백엔드 서버 없음), 공공데이터포털 API는 브라우저에서 직접 호출하지 않고 Supabase Edge Function을 경유
+- 인증/DB/Edge Function: Supabase (Auth + Postgres + RLS + Edge Functions), 프로젝트: "Yoomnoom's Project" (`pkucszwwnwpzvzqczmhh`)
 - 차트: recharts
 - 디자인 시스템: `DESIGN.md`(Elice 브랜드 톤 — 보라 `#7353ea` 주 색상, Pretendard Variable 폰트, 그림자 없는 플랫 UI)를 프로젝트 스타일에 맞게 적용
 - 배포: Vercel (예정, 아직 미배포)
@@ -76,10 +78,10 @@ Vercel 배포, 환경변수: .env(로컬) / Vercel Env(운영)
 ## 5. 외부 API (공공데이터포털)
 
 - **데이터셋:** 인천국제공항공사_승객예고-출·입국장별 (여객터미널혼잡도예고제)
-- **엔드포인트:** `https://apis.data.go.kr/B551177/passgrAnncmt/getPassgrAnncmt` (반드시 HTTPS)
-- **함수명(고정):** `getPassgrAnncmt(selectdate: 0 | 1)` — 데이터 호출 서비스 계층의 함수명은 이 이름을 그대로 사용한다. (`0` = 오늘, `1` = 내일)
-- **인증:** 쿼리 파라미터 `serviceKey` (`.env`의 `VITE_AIRPORT_API_KEY`)
-- **응답 포맷:** 공공데이터포털 공통 REST 래퍼 가정 — `response.header.resultCode/resultMsg`, `response.body.items`. `resultCode !== '00'`이면 API 레벨 오류(트래픽 제한, 점검 등)로 간주해 에러로 처리한다.
+- **엔드포인트:** `https://apis.data.go.kr/B551177/passgrAnncmt/getPassgrAnncmt` (반드시 HTTPS) — 프론트엔드가 직접 호출하지 않고, Supabase Edge Function이 대신 호출한 뒤 결과를 프론트엔드로 반환한다.
+- **함수명(고정):** `getPassgrAnncmt(selectdate: 0 | 1)` — 데이터 호출 서비스 계층의 함수명은 이 이름을 그대로 사용한다. (`0` = 오늘, `1` = 내일). 프론트엔드에서는 이 함수가 내부적으로 Supabase Edge Function을 호출하도록 구현한다.
+- **인증:** 쿼리 파라미터 `serviceKey` — Edge Function 내부에서만 사용하며, Supabase Edge Function Secret `AIRPORT_API_KEY`로 관리한다 (프론트엔드 `.env`에는 두지 않음, 브라우저에 노출되지 않음).
+- **응답 포맷:** 공공데이터포털 공통 REST 래퍼 가정 — `response.header.resultCode/resultMsg`, `response.body.items`. `resultCode !== '00'`이면 API 레벨 오류(트래픽 제한, 점검 등)로 간주해 에러로 처리한다. Edge Function은 이 판단을 대신 수행해 프론트엔드에 성공/실패를 명확히 전달한다.
 
 **구현 착수 전 재확인 필요** (아직 실제 API 문서 전체 미조회 — 1차 연동 코드는 위 가정으로 작성하고, 실제 콘솔 응답 확인 후 필드 타입을 확정한다):
 - 응답 필드(터미널/구역/시간대/등급 체계 등) 상세 스펙, 조회 가능 기간, 시간 granularity, CORS 허용 여부, 트래픽 제한
@@ -124,8 +126,7 @@ Vercel 배포, 환경변수: .env(로컬) / Vercel Env(운영)
 ## 8. 리스크 & 미결정 사항
 
 **리스크**
-- API 키가 프론트에서 직접 호출되어 브라우저에 노출됨 (`.env`/Vercel Env는 소스 하드코딩 방지용일 뿐, 런타임 노출은 못 막음)
-- 공공데이터 API가 CORS를 막을 경우 별도 프록시(Vercel Serverless Function) 필요 — 착수 전 테스트 필수
+- Edge Function 자체는 서버 측 실행이므로 API 키가 브라우저에 노출되지는 않지만, Edge Function의 CORS/인증 설정이 허술하면 제3자가 이 프록시를 통해 키를 우회 사용할 수 있음 — 허용 오리진 제한 등 점검 필요
 - "혼잡도예고제"는 예측 데이터라 실제와 차이 가능 → UI 문구로 안내
 
 **결정된 사항 (구현 반영됨)**
@@ -133,12 +134,12 @@ Vercel 배포, 환경변수: .env(로컬) / Vercel Env(운영)
 2. 그래프 라이브러리: recharts로 결정
 3. 비로그인 사용자도 혼잡도 조회(오늘/내일, 상세, 히트맵, 추천, 그래프)는 전부 가능 — 즐겨찾기 추가/조회만 로그인 필요
 4. 디자인 가이드: `DESIGN.md`(Elice 톤) 적용
+5. 공공데이터포털 API 호출 방식: 브라우저 직접 호출 대신 Supabase Edge Function 프록시를 경유하는 구조로 전환. API 키는 프론트엔드 `.env`가 아닌 Edge Function Secret(`AIRPORT_API_KEY`)으로 관리해 브라우저 노출을 원천 차단
 
 **여전히 미결정 (구현 전 확인 필요)**
 1. 혼잡도 API 실제 응답 스펙 미확인 — 신청 후 공유 필요, 현재는 목업 데이터(`src/services/congestionService.ts`)로 화면만 완성된 상태
-2. CORS 테스트 결과에 따라 프록시 구조(Vercel Serverless Function) 전환 여부
-3. 다국어 지원 여부
-4. 실제 인원수 필드 존재 여부 (현재는 혼잡도 %에서 역산한 추정치)
+2. 다국어 지원 여부
+3. 실제 인원수 필드 존재 여부 (현재는 혼잡도 %에서 역산한 추정치)
 
 ---
 

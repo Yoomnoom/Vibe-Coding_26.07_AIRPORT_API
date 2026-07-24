@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { AuthUser } from '../types/auth'
 
@@ -10,10 +10,22 @@ interface HeaderAuthProps {
   onSignIn: (email: string, password: string) => Promise<void>
   onSignUp: (email: string, password: string) => Promise<void>
   onSignOut: () => Promise<void>
+  openSignal?: number
 }
 
-export function HeaderAuth({ user, isLoading, onSignIn, onSignUp, onSignOut }: HeaderAuthProps) {
+export function HeaderAuth({
+  user,
+  isLoading,
+  onSignIn,
+  onSignUp,
+  onSignOut,
+  openSignal = 0,
+}: HeaderAuthProps) {
   const [isFormOpen, setIsFormOpen] = useState(false)
+
+  useEffect(() => {
+    if (openSignal > 0) setIsFormOpen(true)
+  }, [openSignal])
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

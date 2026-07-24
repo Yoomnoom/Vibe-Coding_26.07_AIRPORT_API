@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { CongestionDetailCard } from './components/CongestionDetailCard'
 import { CongestionHeatmap } from './components/CongestionHeatmap'
@@ -35,8 +35,16 @@ function App() {
   const [lastRefreshedAt, setLastRefreshedAt] = useState(() => new Date())
 
   const [favorites, setFavorites] = useState<FavoriteItem[]>([])
+  const [scheduleFeedback, setScheduleFeedback] = useState<string | null>(null)
+  const [loginPromptSignal, setLoginPromptSignal] = useState(0)
+  const detailCardRef = useRef<HTMLDivElement>(null)
 
   const [showPassgrAnncmtTest, setShowPassgrAnncmtTest] = useState(false)
+
+  function showScheduleFeedback(message: string) {
+    setScheduleFeedback(message)
+    setTimeout(() => setScheduleFeedback((current) => (current === message ? null : current)), 3000)
+  }
 
   const dayRecords = useMemo(
     () => (selectedDay === 'today' ? getTodayCongestion() : getTomorrowCongestion()),
@@ -114,8 +122,26 @@ function App() {
       .catch((err: Error) => setFavoritesError(err.message))
   }, [user])
 
+  function isDuplicateSchedule(record: CongestionRecord) {
+    return favorites.some(
+      (favorite) =>
+        favorite.terminal === record.terminal &&
+        favorite.zone === record.zone &&
+        favorite.targetDate === record.date &&
+        favorite.targetTime === record.time,
+    )
+  }
+
   async function handleAddFavorite(record: CongestionRecord) {
-    if (!user) return
+    if (!user) {
+      showScheduleFeedback('공항 일정을 저장하려면 로그인이 필요합니다.')
+      setLoginPromptSignal((prev) => prev + 1)
+      return
+    }
+    if (isDuplicateSchedule(record)) {
+      showScheduleFeedback('이미 저장된 공항 일정입니다.')
+      return
+    }
     setFavoritesError(null)
     try {
       await addFavorite(user.id, {
@@ -125,6 +151,7 @@ function App() {
         targetTime: record.time,
       })
       setFavorites(await getFavorites(user.id))
+      showScheduleFeedback('내 공항 일정에 저장했습니다.')
     } catch (err) {
       setFavoritesError((err as Error).message)
     }
@@ -136,6 +163,7 @@ function App() {
     try {
       await removeFavorite(id)
       setFavorites(await getFavorites(user.id))
+      showScheduleFeedback('공항 일정을 삭제했습니다.')
     } catch (err) {
       setFavoritesError((err as Error).message)
     }
@@ -146,6 +174,7 @@ function App() {
     setSelectedDate(favorite.targetDate)
     setIsLiveMode(false)
     setSelectedTime(favorite.targetTime)
+    detailCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   return (
@@ -163,12 +192,15 @@ function App() {
             onSignIn={signIn}
             onSignUp={signUp}
             onSignOut={signOut}
+            openSignal={loginPromptSignal}
           />
         }
       />
 
       <div className="app-body">
         <main className="app-main">
+          {scheduleFeedback && <div className="schedule-toast">{scheduleFeedback}</div>}
+
           <div className="top-row">
             <FavoritesList
               isLoggedIn={isLoggedIn}
@@ -185,19 +217,20 @@ function App() {
             />
           </div>
 
-          <CongestionDetailCard
-            selectedDate={selectedDate}
-            selectedTime={selectedTime}
-            availableTimes={getAvailableTimes()}
-            onChangeDate={handleChangeDate}
-            onChangeTime={handleChangeTime}
-            records={detailRecords}
-            isLoggedIn={isLoggedIn}
-            onAddFavorite={handleAddFavorite}
-            isLiveMode={isLiveMode}
-            onGoLive={handleGoLive}
-            lastRefreshedAt={lastRefreshedAt}
-          />
+          <div ref={detailCardRef}>
+            <CongestionDetailCard
+              selectedDate={selectedDate}
+              selectedTime={selectedTime}
+              availableTimes={getAvailableTimes()}
+              onChangeDate={handleChangeDate}
+              onChangeTime={handleChangeTime}
+              records={detailRecords}
+              onAddFavorite={handleAddFavorite}
+              isLiveMode={isLiveMode}
+              onGoLive={handleGoLive}
+              lastRefreshedAt={lastRefreshedAt}
+            />
+          </div>
 
           <CongestionHeatmap
             dayRecords={dayRecords}

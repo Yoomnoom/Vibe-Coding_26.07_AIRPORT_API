@@ -1,5 +1,6 @@
 import type { CongestionRecord, Terminal, Zone } from '../types/congestion'
 import { CONGESTION_LEVEL_STYLE } from '../utils/congestionColors'
+import { estimatePeopleCount } from '../services/congestionService'
 
 interface RecommendationBannerProps {
   dayRecords: CongestionRecord[]
@@ -44,6 +45,9 @@ export function RecommendationBanner({ dayRecords, zone, onSelectTime }: Recomme
                     style={style ? { background: style.background, color: style.color } : undefined}
                   >
                     {best.congestionLevel}% · {best.congestionLabel}
+                  </span>
+                  <span className="recommendation-people">
+                    약 {estimatePeopleCount(best.congestionLevel).toLocaleString()}명
                   </span>
                 </>
               ) : (

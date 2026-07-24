@@ -10,7 +10,6 @@ interface CongestionDetailCardProps {
   onChangeDate: (date: string) => void
   onChangeTime: (time: string) => void
   records: CongestionRecord[]
-  isLoggedIn: boolean
   onAddFavorite: (record: CongestionRecord) => void
   isLiveMode: boolean
   onGoLive: () => void
@@ -28,7 +27,6 @@ export function CongestionDetailCard({
   onChangeDate,
   onChangeTime,
   records,
-  isLoggedIn,
   onAddFavorite,
   isLiveMode,
   onGoLive,
@@ -84,11 +82,9 @@ export function CongestionDetailCard({
                   <span className="tile-level-value">{record.congestionLevel}%</span>
                   <span className="tile-label">{record.congestionLabel}</span>
                 </div>
-                {isLoggedIn && (
-                  <button type="button" className="btn-primary" onClick={() => onAddFavorite(record)}>
-                    즐겨찾기 추가
-                  </button>
-                )}
+                <button type="button" className="btn-primary" onClick={() => onAddFavorite(record)}>
+                  내 일정에 저장
+                </button>
               </div>
             )
           })}

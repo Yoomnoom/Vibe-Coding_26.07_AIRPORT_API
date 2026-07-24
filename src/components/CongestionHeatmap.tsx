@@ -1,6 +1,7 @@
 import { Fragment } from 'react'
 import type { CongestionRecord, Terminal, Zone } from '../types/congestion'
 import { CONGESTION_LEVEL_STYLE } from '../utils/congestionColors'
+import { estimatePeopleCount } from '../services/congestionService'
 
 interface CongestionHeatmapProps {
   dayRecords: CongestionRecord[]
@@ -73,7 +74,7 @@ export function CongestionHeatmap({ dayRecords, selectedTime, onSelectTime }: Co
                     onClick={() => onSelectTime(time)}
                     title={
                       record
-                        ? `${terminal} ${zone} ${time} · ${record.congestionLabel} (${record.congestionLevel}%)`
+                        ? `${terminal} ${zone} ${time} · ${record.congestionLabel} (${record.congestionLevel}%, 약 ${estimatePeopleCount(record.congestionLevel).toLocaleString()}명)`
                         : undefined
                     }
                   >

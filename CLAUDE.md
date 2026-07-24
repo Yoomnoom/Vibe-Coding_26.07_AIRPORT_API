@@ -12,7 +12,8 @@ React + TypeScript + Vite, recharts, Supabase(Auth/Database, MCP로 관리), 공
 
 ## 반드시 지킬 규칙
 
-- 공공데이터포털 API 키는 `.env`의 `VITE_AIRPORT_API_KEY`로 관리한다.
+- 공공데이터포털 API 키는 Supabase Edge Function의 Secret(`VITE_AIRPORT_API_KEY`)으로만 관리하며, 프론트엔드 코드나 `.env`에는 절대 두지 않는다.
+- 프론트엔드는 공공데이터 API를 직접 호출하지 않고, 반드시 Supabase Edge Function을 통해서만 호출한다.
 - Supabase URL과 anon key는 `.env`의 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`로 관리한다.
 - 즐겨찾기 테이블은 반드시 RLS(행 수준 보안)를 켜고, "로그인한 본인의 즐겨찾기만" 조회/추가/삭제할 수 있는 정책을 적용한다.
 - `.env`는 `.gitignore`에 포함해 깃허브에 올라가지 않게 한다. `.env.example`에는 키 이름만 두고 실제 값은 넣지 않는다.
