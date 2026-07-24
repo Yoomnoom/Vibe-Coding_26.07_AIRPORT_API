@@ -14,6 +14,7 @@ interface FavoritesListProps {
   error: string | null
   selectedDay: DayKind
   selectedTime: string
+  refreshSignal: number
   onAddPlace: (input: NewInterestPlaceInput) => void
   onRemovePlace: (id: string) => void
 }
@@ -33,6 +34,7 @@ export function FavoritesList({
   error,
   selectedDay,
   selectedTime,
+  refreshSignal,
   onAddPlace,
   onRemovePlace,
 }: FavoritesListProps) {
@@ -41,6 +43,7 @@ export function FavoritesList({
   const [dayError, setDayError] = useState<string | null>(null)
   const [pickedKey, setPickedKey] = useState(DETAIL_PLACES[0].key)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [isListOpen, setIsListOpen] = useState(true)
 
   useEffect(() => {
     let cancelled = false
@@ -59,7 +62,7 @@ export function FavoritesList({
     return () => {
       cancelled = true
     }
-  }, [selectedDay])
+  }, [selectedDay, refreshSignal])
 
   const currentRecord = findRecordByTime(dayItems, selectedTime)
 
@@ -89,7 +92,20 @@ export function FavoritesList({
 
   return (
     <section className="favorites-list">
-      <h2>내 관심 출입국장</h2>
+      <div className="chart-header">
+        <h2>내 관심 출입국장</h2>
+        {isLoggedIn && places.length > 0 && (
+          <button
+            type="button"
+            className="list-collapse-toggle"
+            onClick={() => setIsListOpen((prev) => !prev)}
+            aria-expanded={isListOpen}
+          >
+            <span className="favorite-group-count">{places.length}곳</span>
+            <span className={`favorite-group-chevron ${isListOpen ? 'open' : ''}`}>▾</span>
+          </button>
+        )}
+      </div>
       <p className="favorites-empty-hint">자주 확인하거나 비교할 출입국장을 저장해보세요.</p>
 
       {error && <p className="auth-error">{error}</p>}
@@ -130,8 +146,8 @@ export function FavoritesList({
         <p>로그인 후 저장된 관심 출입국장을 확인할 수 있습니다.</p>
       ) : places.length === 0 ? (
         <p>저장된 관심 출입국장이 없습니다.</p>
-      ) : (
-        <ul>
+      ) : !isListOpen ? null : (
+        <ul className="place-scroll-list">
           {ranked.map(({ place, value }, index) => {
             const isBest = value !== null && value === bestValue
             const diff = value !== null && bestValue !== null ? value - bestValue : null

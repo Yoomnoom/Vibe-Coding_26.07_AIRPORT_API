@@ -724,3 +724,55 @@ button {
   color: var(--primary-deep);
   font-weight: 600;
 }
+
+.heatmap-tooltip {
+  position: fixed;
+  transform: translate(-50%, -130%);
+  background: var(--ink);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.list-collapse-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.place-scroll-list {
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 4px;
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent;
+}
+
+.place-scroll-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.place-scroll-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.place-scroll-list::-webkit-scrollbar-thumb {
+  background: rgba(115, 83, 234, 0.35);
+  border-radius: 999px;
+}
+
+.place-scroll-list::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}

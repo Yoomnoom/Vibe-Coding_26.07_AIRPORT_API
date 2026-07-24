@@ -37,6 +37,7 @@ function App() {
   const [selectedZone, setSelectedZone] = useState<Zone>('출국장')
   const [isLiveMode, setIsLiveMode] = useState(true)
   const [lastRefreshedAt, setLastRefreshedAt] = useState(() => new Date())
+  const [refreshSignal, setRefreshSignal] = useState(0)
 
   const [places, setPlaces] = useState<InterestPlace[]>([])
   const [placeFeedback, setPlaceFeedback] = useState<string | null>(null)
@@ -78,12 +79,13 @@ function App() {
   }
 
   function handleRefresh() {
-    // TODO: 실제 연동 시 공공데이터포털 API 재조회로 교체
     setLastRefreshedAt(new Date())
+    setRefreshSignal((prev) => prev + 1)
     if (selectedDay === 'today') {
       setIsLiveMode(true)
       setSelectedTime(getCurrentTimeSlot())
     }
+    showPlaceFeedback('혼잡도 정보를 새로고침했습니다.')
   }
 
   function handleGoLive() {
@@ -192,6 +194,7 @@ function App() {
               error={placesError}
               selectedDay={selectedDay}
               selectedTime={selectedTime}
+              refreshSignal={refreshSignal}
               onAddPlace={handleAddPlace}
               onRemovePlace={handleRemovePlace}
             />

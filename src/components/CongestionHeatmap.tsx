@@ -1,7 +1,14 @@
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
+import type { MouseEvent } from 'react'
 import type { CongestionRecord, Terminal, Zone } from '../types/congestion'
 import { CONGESTION_LEVEL_STYLE } from '../utils/congestionColors'
 import { estimatePeopleCount } from '../services/congestionService'
+
+interface TooltipState {
+  text: string
+  x: number
+  y: number
+}
 
 interface CongestionHeatmapProps {
   dayRecords: CongestionRecord[]
@@ -26,10 +33,31 @@ function isHourBlockEnd(time: string): boolean {
 }
 
 export function CongestionHeatmap({ dayRecords, selectedTime, onSelectTime }: CongestionHeatmapProps) {
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null)
+
   function findRecord(terminal: Terminal, zone: Zone, time: string) {
     return dayRecords.find(
       (record) => record.terminal === terminal && record.zone === zone && record.time === time,
     )
+  }
+
+  function showTooltip(
+    event: MouseEvent,
+    record: CongestionRecord | undefined,
+    terminal: Terminal,
+    zone: Zone,
+    time: string,
+  ) {
+    if (!record) return
+    setTooltip({
+      text: `${terminal} ${zone} ${time} · ${record.congestionLabel} ${record.congestionLevel}% · 약 ${estimatePeopleCount(record.congestionLevel).toLocaleString()}명`,
+      x: event.clientX,
+      y: event.clientY,
+    })
+  }
+
+  function hideTooltip() {
+    setTooltip(null)
   }
 
   return (
@@ -72,11 +100,9 @@ export function CongestionHeatmap({ dayRecords, selectedTime, onSelectTime }: Co
                     className={`heatmap-cell heatmap-value-cell ${time === selectedTime ? 'selected' : ''} ${isHourBlockEnd(time) ? 'hour-block-end' : ''}`}
                     style={style ? { background: style.background, color: style.color } : undefined}
                     onClick={() => onSelectTime(time)}
-                    title={
-                      record
-                        ? `${terminal} ${zone} ${time} · ${record.congestionLabel} (${record.congestionLevel}%, 약 ${estimatePeopleCount(record.congestionLevel).toLocaleString()}명)`
-                        : undefined
-                    }
+                    onMouseEnter={(event) => showTooltip(event, record, terminal, zone, time)}
+                    onMouseMove={(event) => showTooltip(event, record, terminal, zone, time)}
+                    onMouseLeave={hideTooltip}
                   >
                     {record ? record.congestionLevel : '-'}
                     {record && record.congestionLevel >= FIRE_THRESHOLD && (
@@ -98,6 +124,12 @@ export function CongestionHeatmap({ dayRecords, selectedTime, onSelectTime }: Co
           </span>
         ))}
       </div>
+
+      {tooltip && (
+        <div className="heatmap-tooltip" style={{ left: tooltip.x, top: tooltip.y }}>
+          {tooltip.text}
+        </div>
+      )}
     </section>
   )
 }
